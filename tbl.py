@@ -197,9 +197,17 @@ class tbl:
         return self.th.tables()
 
     # update updates data in a table row
+    # table: table name
+    # fromrow: dict used to select row
+    # torow: dict with new values
+    # dq returns dicts keyed by <tablename>.<fieldname>. to make edits on these dicts updatable without renaming the keys, this function also accept these dicts, if all keys in fromrow or torow are <tablename>.<fieldname>
     def update(self, table, fromrow, torow):
         fromdata = withidentity(table, fromrow)
         todata = withoutidentity(table, torow)
+
+        # remove table names from dict keys if they are there
+        fromdata = _rmtablename(table, fromdata)
+        todata = _rmtablename(table, todata)
 
         # todata.pop(pk) # don't update the primary key
         updatepairs = []
@@ -216,6 +224,42 @@ class tbl:
 
         # do the update
         self.db.query(q, args)
+
+# _rmtablenames removes table name from <tablename>.<fieldname> keys keys in row-dict and returns row-dict
+# gives an error if only some fields are preceeded by a table name, and if table names don't match the given name
+def _rmtablename(tablename:str, row:dict) -> dict:
+    out = {}
+    # find out whether the first key has a tablename
+    key = keys(row)[0]
+    if re.match("\.", key):
+        withname = True  # all keys should be with table name
+    else:
+        withname = False # no key should be with table name
+    for key in keys(row):
+        # key with table name when it shouldn't be, or without table name when it should be with
+        if re.match("\.", key) != withname:
+            print("error: there must be a tablename for all keys or for none")
+            exit
+        # no edits to be done, continue
+        if !withnames:
+            continue
+
+        # remove tablename
+        a = key.split(".")
+        thistablename = a[0]
+        if thistablename != tablename:
+            print(f"error: table name in {key} doesn't match {tablename}")
+            exit
+        fieldname = a[1]
+        # put field in out without table name
+        out[fieldname] = row[key]
+
+    # table name got removed from every key
+    if withnames:
+        return out
+    else:
+        # no key had a table name, return unchanged
+        return row
 
 if __name__ == "__main__":
     

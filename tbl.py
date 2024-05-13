@@ -9,7 +9,7 @@
 # fkfromt
 # fkfromtc
 # fktot
-# (fktotc)
+# fktotc
 # identities
 # insert
 # update
@@ -23,12 +23,12 @@ import sys
 import jsonpickle 
 
 class fk:
-    # init a foreign key. ft: from table, fc: from colum, tt: to table, tc: to column.
-    def __init__(self, ft, fc, tt, tc):
+    # init a foreign key. ft: from table, ff: from field, tt: to table, tf: to field.
+    def __init__(self, ft, ff, tt, tf):
         self.ft = ft
-        self.fc = fc
+        self.ff = ff
         self.tt = tt
-        self.tc = tc
+        self.tf = tf
 
 class tbl:
 
@@ -115,9 +115,9 @@ class tbl:
             query = """
             SELECT 
             OBJECT_NAME(fk.parent_object_id) ft,
-            COL_NAME(fkc.parent_object_id, fkc.parent_column_id) fc,
+            COL_NAME(fkc.parent_object_id, fkc.parent_column_id) ff,
             OBJECT_NAME(fk.referenced_object_id) tt,
-            COL_NAME(fkc.referenced_object_id, fkc.referenced_column_id) tc
+            COL_NAME(fkc.referenced_object_id, fkc.referenced_column_id) tf
             FROM 
             sys.foreign_keys AS fk
             INNER JOIN 
@@ -127,12 +127,12 @@ class tbl:
             sys.tables t 
             ON t.OBJECT_ID = fkc.referenced_object_id"""
 
-            # return self.db.qfad(query) # todo return array of keys? let key have fields ft fc tt tc and fromtable fromcolumn totable tocolumn?
+            # return self.db.qfad(query) # todo return array of keys? let key have fields ft ff tt tf and fromtable fromcolumn totable tocolumn?
             rows = self.db.qfad(query) # todo return array of keys? let key have fields ft fc tt tc and fromtable fromcolumn totable tocolumn?
             # output foreign as objects
             a = []
             for row in rows:
-                a.append(fk(row["ft"].lower(), row["fc"].lower(), row["tt"].lower(), row["tc"].lower())) # is lower() here a good idea?
+                a.append(fk(row["ft"].lower(), row["ff"].lower(), row["tt"].lower(), row["tf"].lower())) # is lower() here a good idea?
                 #a.append(fk(row["ft"], row["fc"], row["tt"], row["tc"])) 
                 # a.append(row)
             return a
@@ -159,9 +159,9 @@ class tbl:
             out[t] = {}
         for key in fka:
             # is there an entry for the key?
-            if not key.fc in out[key.ft]:
-                out[key.ft][key.fc] = []
-            out[key.ft][key.fc].append(key)
+            if not key.ff in out[key.ft]:
+                out[key.ft][key.ff] = []
+            out[key.ft][key.ff].append(key)
         return out
 
     # fktot returns foreign keys by to-table

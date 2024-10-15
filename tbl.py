@@ -141,7 +141,9 @@ class tbl:
 
     # fkfromt returns foreign keys by from-table
     # dict key for every table in db
-    def fkfromt(self, fka):
+    def fkfromt(self, fka=None):
+        if fka == None:
+            fka = self.fk()
         out = {}
         # return complete list of tables in db
         for t in self.tables():
@@ -152,7 +154,9 @@ class tbl:
 
     # fkfromtf returns foreign keys by from-table and from-field
     # dict key for every table in db
-    def fkfromtf(self, fka):
+    def fkfromtf(self, fka=None):
+        if fka == None:
+            fka = self.fk()
         out = {}
         # return complete list of tables in db
         for t in self.tables():
@@ -166,7 +170,9 @@ class tbl:
 
     # fktot returns foreign keys by to-table
     # dict key for every table in db
-    def fktot(self, fka):
+    def fktot(self, fka=None):
+        if fka == None:
+            fka = self.fk()
         out = {}
         # return complete list of tables in db
         for t in self.tables():
@@ -177,7 +183,9 @@ class tbl:
 
     # fktotf returns foreign keys by to-table and to-field
     # dict key for every table in db
-    def fktotf(self, fka):
+    def fktotf(self, fka=None):
+        if fka == None:
+            fka = self.fk()
         out = {}
         # return complete list of tables in db
         for t in self.tables():
@@ -241,7 +249,7 @@ def _rmtablename(tablename:str, row:dict) -> dict:
             print("error: there must be a tablename for all keys or for none")
             exit
         # no edits to be done, continue
-        if !withnames:
+        if not withnames:
             continue
 
         # remove tablename

@@ -121,6 +121,7 @@ class tblhelp:
             out = []
             for row in result:
                 out.append(row["column_name"].lower())
+            out.sort()
             return out
 
     # _columnsquery returns dict array of tables and columns, either for one table or for all tables
@@ -187,6 +188,7 @@ class tblhelp:
 
     # tables gives the names of the tables in the db
     def tables(self):
+        tables = []
         # for mssql
         if self._ismssql():
             result = self.db.qfad("exec sp_tables")
@@ -194,16 +196,17 @@ class tblhelp:
             for row in result:
                 if row["table_owner"] == "dbo":
                     tables.append(row["table_name"].lower())
-            return tables
         elif self._issqlite():
             # for sqlite
             # from https://stackoverflow.com/a/83195
             res = self.db.qfad("SELECT name FROM sqlite_master WHERE type='table'")
             tables = [row["name"] for row in res]
-            return tables
         else:
             print(f"tables not supported for {self._type()}")
             exit
+            
+        tables.sort()
+        return tables
 
     # _type returns the db type
     def _type(self):

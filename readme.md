@@ -29,3 +29,20 @@ into the same directive, set up dbcq as described, then in code say:
 t = tbl("<target in db.ini>")
 print(t.tables())
 ```
+
+## cli
+
+use from the command line like:
+
+```
+tbl <db target> <subcommand>
+```
+
+with subcommands:
+
+```
+  fk           all foreign keys as json
+  tables       all tables as json
+  fields <tablename>   fields of a table as json
+  table <tablename>    human readable table summary
+```

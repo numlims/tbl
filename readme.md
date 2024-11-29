@@ -2,6 +2,11 @@
 
 python wrapper for sql tables.
 
+```
+t = tbl("<target in .dbc>")
+print(t.tables())
+```
+
 ## functions:
 
 fields<br/>
@@ -20,16 +25,6 @@ tables<br/>
 
 supports mssql at the moment. fk, fields and tables also support sqlite.
 
-## setup
-
-for now, throw the files from [dbcq](https://github.com/numlims/dbcq)
-into the same directive, set up dbcq as described, then in code say:
-
-```
-t = tbl("<target in db.ini>")
-print(t.tables())
-```
-
 ## cli
 
 use from the command line like:
@@ -46,3 +41,8 @@ with subcommands:
   fields <tablename>   fields of a table as json
   table <tablename>    human readable table summary
 ```
+
+## setup
+
+needs [dbcq](https://github.com/numlims/dbcq) for database connection.
+

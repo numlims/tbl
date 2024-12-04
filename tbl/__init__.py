@@ -2,14 +2,14 @@
 # table and field names are lower cased by default
 # see method comments for short description
 
-# fields
-# fieldtypes
+# columns
+# columntypes
 # deletefrom
 # fk
 # fkfromt
-# fkfromtf
+# fkfromtc
 # fktot
-# fktotf
+# fktotc
 # identities
 # insert
 # update
@@ -25,12 +25,12 @@ import jsonpickle
 
 # fk holds a foreign key
 class fk:
-    # init a foreign key. ft: from table, ff: from field, tt: to table, tf: to field.
-    def __init__(self, ft, ff, tt, tf):
+    # init a foreign key. ft: from table, fc: from column, tt: to table, tc: to column.
+    def __init__(self, ft, fc, tt, tc):
         self.ft = ft
-        self.ff = ff
+        self.fc = fc
         self.tt = tt
-        self.tf = tf
+        self.tc = tc
 
 # tbl gives db table information
 class tbl:
@@ -41,14 +41,14 @@ class tbl:
         self.db = dbcq(target)
         self.th = tblhelp(self.db)
 
-    # fields returns the column names of table as an array of strings,
+    # columns returns the column names of table as an array of strings,
     # if no table given, return dict by table with fields for every table 
-    def fields(self, table=None):
-        return self.th.fields(table)
+    def columns(self, table=None):
+        return self.th.columns(table)
 
-    # fieldtypes gives the column schema for tablename
-    def fieldtypes(self, tablename):
-        return self.th.fieldtypes(tablename)
+    # columntypes gives the column schema for tablename
+    def columntypes(self, tablename):
+        return self.th.columntypes(tablename)
 
     # deletefrom deletes the row in table identified by the post parameters
     # if there are two rows with exactly the same values, it deletes both 
@@ -118,9 +118,9 @@ class tbl:
             query = """
             SELECT 
             OBJECT_NAME(fk.parent_object_id) ft,
-            COL_NAME(fkc.parent_object_id, fkc.parent_column_id) ff,
+            COL_NAME(fkc.parent_object_id, fkc.parent_column_id) fc,
             OBJECT_NAME(fk.referenced_object_id) tt,
-            COL_NAME(fkc.referenced_object_id, fkc.referenced_column_id) tf
+            COL_NAME(fkc.referenced_object_id, fkc.referenced_column_id) tc
             FROM 
             sys.foreign_keys AS fk
             INNER JOIN 
@@ -130,12 +130,12 @@ class tbl:
             sys.tables t 
             ON t.OBJECT_ID = fkc.referenced_object_id"""
 
-            # return self.db.qfad(query) # todo return array of keys? let key have fields ft ff tt tf and fromtable fromcolumn totable tocolumn?
+            # return self.db.qfad(query) # todo return array of keys? let key have fields ft fc tt tc and fromtable fromcolumn totable tocolumn?
             rows = self.db.qfad(query) # todo return array of keys? let key have fields ft fc tt tc and fromtable fromcolumn totable tocolumn?
             # output foreign as objects
             a = []
             for row in rows:
-                a.append(fk(row["ft"].lower(), row["ff"].lower(), row["tt"].lower(), row["tf"].lower())) # is lower() here a good idea?
+                a.append(fk(row["ft"].lower(), row["fc"].lower(), row["tt"].lower(), row["tc"].lower())) # is lower() here a good idea?
                 #a.append(fk(row["ft"], row["fc"], row["tt"], row["tc"])) 
                 # a.append(row)
             return a
@@ -155,9 +155,9 @@ class tbl:
             out[key.ft].append(key)
         return out
 
-    # fkfromtf returns foreign keys by from-table and from-field
+    # fkfromtc returns foreign keys by from-table and from-column
     # dict key for every table in db
-    def fkfromtf(self, fka=None):
+    def fkfromtc(self, fka=None):
         if fka == None:
             fka = self.fk()
         out = {}
@@ -166,9 +166,9 @@ class tbl:
             out[t] = {}
         for key in fka:
             # is there an entry for the key?
-            if not key.ff in out[key.ft]:
-                out[key.ft][key.ff] = []
-            out[key.ft][key.ff].append(key)
+            if not key.fc in out[key.ft]:
+                out[key.ft][key.fc] = []
+            out[key.ft][key.fc].append(key)
         return out
 
     # fktot returns foreign keys by to-table
@@ -184,9 +184,9 @@ class tbl:
             out[key.tt].append(key)
         return out
 
-    # fktotf returns foreign keys by to-table and to-field
+    # fktotc returns foreign keys by to-table and to-column
     # dict key for every table in db
-    def fktotf(self, fka=None):
+    def fktotc(self, fka=None):
         if fka == None:
             fka = self.fk()
         out = {}
@@ -194,9 +194,9 @@ class tbl:
         for t in self.tables():
             out[t] = {}
         for key in fka:
-            if not key.tf in out[key.tt]:
-                out[key.tt][key.tf] = []
-            out[key.tt][key.tf].append(key)
+            if not key.tc in out[key.tt]:
+                out[key.tt][key.tc] = []
+            out[key.tt][key.tc].append(key)
         return out
 
     # pk gives primary keys as list for each table
@@ -236,18 +236,18 @@ class tbl:
         # do the update
         self.db.query(q, args)
 
-    # tablesummary returns a human readable summary of table with fields and outgoing and incoming foreign keys
+    # tablesummary returns a human readable summary of table with columns and outgoing and incoming foreign keys
     # taken from ~/tbl-cxx/bytable.py
     def tablesummary(self, table:str):
         out = ""
 
         # get fks
         fks = self.fk()
-        fkfromtc = self.fkfromtf(fks)
-        fktotc = self.fktotf(fks)
+        fkfromtc = self.fkfromtc(fks)
+        fktotc = self.fktotc(fks)
 
         # columns by table
-        columns = self.fields()
+        columns = self.columns()
 
         # print(table)
         out += table.upper() + "  "
@@ -267,7 +267,7 @@ class tbl:
             # print("from")
             for column in cols:
                 fk = fkfromtc[table][column][0]
-                out += "  " + fk.ff.lower() + "  " + fk.tt.lower() + "." + fk.tf.lower() + "\n"
+                out += "  " + fk.fc.lower() + "  " + fk.tt.lower() + "." + fk.tc.lower() + "\n"
             out += "\n"
 
         # incoming foreign keys to this table
@@ -281,15 +281,15 @@ class tbl:
                 # sort by from-table
                 fktotc[table][column].sort(key=lambda x: x.ft)
                 for fk in fktotc[table][column]:
-                  out += "  " + fk.ft.lower() + "." + fk.ff.lower() + "\n"
+                  out += "  " + fk.ft.lower() + "." + fk.fc.lower() + "\n"
             out += "\n"
 
         out += "\n"
 
         return out
 
-# _rmtablenames removes table name from <tablename>.<fieldname> keys keys in row-dict and returns row-dict
-# gives an error if only some fields are preceeded by a table name, and if table names don't match the given name
+# _rmtablenames removes table name from <tablename>.<columname> keys keys in row-dict and returns row-dict
+# gives an error if only some columns are preceeded by a table name, and if table names don't match the given name
 def _rmtablename(tablename:str, row:dict) -> dict:
     out = {}
     # find out whether the first key has a tablename
@@ -313,9 +313,9 @@ def _rmtablename(tablename:str, row:dict) -> dict:
         if thistablename != tablename:
             print(f"error: table name in {key} doesn't match {tablename}")
             exit
-        fieldname = a[1]
+        colname = a[1]
         # put field in out without table name
-        out[fieldname] = row[key]
+        out[colname] = row[key]
 
     # table name got removed from every key
     if withnames:

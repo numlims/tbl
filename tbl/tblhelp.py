@@ -8,15 +8,15 @@ class tblhelp:
     def __init__(self, db:dbcq):
         self.db = db
 
-    # withidentity checks that there are no keys in data that are not fields in table, leaves identity columns in
+    # withidentity checks that there are no keys in data that are not columns in table, leaves identity columns in
     def withidentity(self, table, data):
         out = {}
-        for k in self.fields(table):
+        for k in self.columns(table):
             if k in data:
                 out[k] = data[k]
         return out
 
-    # withoutidentity checks that there are no keys in data that are not fields in table, throws identity columns out
+    # withoutidentity checks that there are no keys in data that are not columns in table, throws identity columns out
     def withoutidentity(self, table, data):
         identities = self.identity_keys(table)
         for ident in identities:
@@ -45,7 +45,7 @@ class tblhelp:
 
     # primary_keys queries the primary keys for table and returns them
     # needed?
-    # todo build like fields(self, table=None)
+    # todo build like columns(self, table=None)
     def primary_keys(self, table):
         # if myssql
         # from https://stackoverflow.com/a/2341388
@@ -94,10 +94,10 @@ class tblhelp:
             print(f"identity_keys not supported for {self._type()}")
             exit
 
-    # fields returns the column names of table as an array of
+    # columns returns the column names of table as an array of
     # strings. if no table is given, it returns a dict by table that
     # holds the column names for every table. 
-    def fields(self, table=None):
+    def columns(self, table=None):
         # return for all tables with columns
         if table == None:
             result = self._columnsquery()

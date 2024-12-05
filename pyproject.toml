@@ -12,7 +12,8 @@ description = "db table wrapper"
 readme = "readme.md"
 requires-python = ">=3.8"
 dependencies = [
-  "simplejson"
+  "simplejson",
+  "dbcq"
 ]
 classifiers = [
   "Programming Language :: Python :: 3"

@@ -1,6 +1,7 @@
-# class tbl gives functions for sql table handling and inspection
-# table and field names are lower cased by default
-# see method comments for short description
+"""
+tbl gives functions for sql table handling and inspection
+table and field names are lower cased by default
+see method comments for short description
 
 # columns
 # columntypes
@@ -17,16 +18,19 @@
 # tables
 # tablesummary
 
+"""
+
 from dbcq import dbcq
-from tbl.tblhelp import *
+from tbl._tblhelp import *
 import json
 import sys
 import jsonpickle 
 
 # fk holds a foreign key
 class fk:
-    # init a foreign key. ft: from table, fc: from column, tt: to table, tc: to column.
     def __init__(self, ft, fc, tt, tc):
+        "init a foreign key. ft: from table, fc: from column, tt: to table, tc: to column."
+
         self.ft = ft
         self.fc = fc
         self.tt = tt
@@ -35,36 +39,51 @@ class fk:
 # tbl gives db table information
 class tbl:
 
-    # init connects to the database target in db.ini
-    # todo maybe pass flag lower=False
     def __init__(self, target):
+        """
+        init connects to the database target in db.ini
+        todo maybe pass flag lower=False
+        """
+        
         self.db = dbcq(target)
         self.th = tblhelp(self.db)
 
-    # columns returns the column names of table as an array of strings,
-    # if no table given, return dict by table with fields for every table 
     def columns(self, table=None):
+        """
+        columns returns the column names of table as an array of strings,
+        if no table given, return dict by table with fields for every table 
+        """
         return self.th.columns(table)
 
-    # columntypes gives the column schema for tablename
     def columntypes(self, tablename):
+        """
+        columntypes gives the column schema for tablename
+        """
+
         return self.th.columntypes(tablename)
 
-    # deletefrom deletes the row in table identified by the post parameters
-    # if there are two rows with exactly the same values, it deletes both 
     def deletefrom(self, table, row):
+        """
+        deletefrom deletes the row in table identified by the post parameters
+        if there are two rows with exactly the same values, it deletes both 
+        """
         args = []
         q = "delete from [" + table + "] where " + self.th.wherestring(row, args)
         # do the deleting
         self.db.query(q, args) # todo uncomment
 
-    # identities gives list of identity (auto-increment) columns for table
     def identities(self, table):
+        """
+        identities gives list of identity (auto-increment) columns for table
+        """
+        
         identities = self.th.identity_keys(table)
         return identities
 
-    # insert inserts a line in a table
     def insert(self, table, row):
+        """
+        insert inserts a line in a table
+        """
         data = withoutidentity(table, row) # assume primary key is generated
         types = columntypes(table) # for parsing
         placeholders = [] # for query
@@ -83,8 +102,11 @@ class tbl:
         # do the insertion
         self.db.query(q, *data.values()) 
 
-    # fk gives all foreign keys as array of fks
     def fk(self):
+        """
+        fk gives all foreign keys as array of fks
+        """
+
         # if myssql
         """ 
         from https://stackoverflow.com/a/201678
@@ -142,9 +164,9 @@ class tbl:
         else:
             print(f"fk not supported for {self.th._type()}")
 
-    # fkfromt returns foreign keys by from-table
-    # dict key for every table in db
     def fkfromt(self, fka=None):
+        "fkfromt returns foreign keys by from-table dict key for every table in db"
+
         if fka == None:
             fka = self.fk()
         out = {}
@@ -155,9 +177,10 @@ class tbl:
             out[key.ft].append(key)
         return out
 
-    # fkfromtc returns foreign keys by from-table and from-column
-    # dict key for every table in db
     def fkfromtc(self, fka=None):
+        """fkfromtc returns foreign keys by from-table and from-column
+        dict key for every table in db"""
+
         if fka == None:
             fka = self.fk()
         out = {}
@@ -171,9 +194,10 @@ class tbl:
             out[key.ft][key.fc].append(key)
         return out
 
-    # fktot returns foreign keys by to-table
-    # dict key for every table in db
     def fktot(self, fka=None):
+        """fktot returns foreign keys by to-table
+        dict key for every table in db"""
+
         if fka == None:
             fka = self.fk()
         out = {}
@@ -184,9 +208,10 @@ class tbl:
             out[key.tt].append(key)
         return out
 
-    # fktotc returns foreign keys by to-table and to-column
-    # dict key for every table in db
     def fktotc(self, fka=None):
+        """fktotc returns foreign keys by to-table and to-column
+        dict key for every table in db"""
+
         if fka == None:
             fka = self.fk()
         out = {}
@@ -199,20 +224,23 @@ class tbl:
             out[key.tt][key.tc].append(key)
         return out
 
-    # pk gives primary keys as list for each table
     def pk(self):
+        """pk gives primary keys as list for each table"""
+
         return self.th.primary_keys()
 
-    # tables gives the names of the tables in the db
     def tables(self):
+        """tables gives the names of the tables in the db"""
+
         return self.th.tables()
 
-    # update updates data in a table row
-    # table: table name
-    # fromrow: dict used to select row
-    # torow: dict with new values
-    # dq returns dicts keyed by <tablename>.<fieldname>. to make edits on these dicts updatable without renaming the keys, this function also accept these dicts, if all keys in fromrow or torow are <tablename>.<fieldname>
     def update(self, table, fromrow, torow):
+        """update updates data in a table row
+    table: table name
+    fromrow: dict used to select row
+    torow: dict with new values
+    dq returns dicts keyed by <tablename>.<fieldname>. to make edits on these dicts updatable without renaming the keys, this function also accept these dicts, if all keys in fromrow or torow are <tablename>.<fieldname>
+        """
         fromdata = withidentity(table, fromrow)
         todata = withoutidentity(table, torow)
 
@@ -236,9 +264,11 @@ class tbl:
         # do the update
         self.db.query(q, args)
 
-    # tablesummary returns a human readable summary of table with columns and outgoing and incoming foreign keys
-    # taken from ~/tbl-cxx/bytable.py
     def tablesummary(self, table:str):
+        """tablesummary returns a human readable summary of table with columns and outgoing and incoming foreign keys."""
+        
+        # taken from ~/tbl-cxx/bytable.py
+
         out = ""
 
         # get fks
@@ -288,9 +318,12 @@ class tbl:
 
         return out
 
-# _rmtablenames removes table name from <tablename>.<columname> keys keys in row-dict and returns row-dict
-# gives an error if only some columns are preceeded by a table name, and if table names don't match the given name
 def _rmtablename(tablename:str, row:dict) -> dict:
+    """
+    _rmtablenames removes table name from <tablename>.<columname> keys keys in row-dict and returns row-dict
+    gives an error if only some columns are preceeded by a table name, and if table names don't match the given name
+    """
+    
     out = {}
     # find out whether the first key has a tablename
     key = keys(row)[0]

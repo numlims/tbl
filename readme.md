@@ -7,6 +7,18 @@ t = tbl("<target in .dbc>")
 print(t.tables())
 ```
 
+documentation [here](https://numlims.github.io/tbl/).
+
+## install
+
+download tbl whl from
+[here](https://github.com/numlims/tbl/releases). install whl with
+pip:
+
+```
+pip install tbl-<version>.whl
+```
+
 ## functions:
 
 fields<br/>

@@ -25,13 +25,15 @@ def main():
     if sys.argv[2] == "fields":
         # table name given
         if len(sys.argv) == 4:
-            print(json.dumps(t.fields(sys.argv[3]), default=str))
+            table = sys.argv[3].lower()
+            print(json.dumps(t.fields(table), default=str))
         else: # table name not given
             print(json.dumps(t.fields(), default=str))
 
     # human readable table summary with fields and fks
     if sys.argv[2] == "table":
-        print(t.tablesummary(sys.argv[3]), end="")
+        table = sys.argv[3].lower()
+        print(t.tablesummary(table), end="")
 
 
 sys.exit(main())

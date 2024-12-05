@@ -19,6 +19,8 @@ pip:
 pip install tbl-<version>.whl
 ```
 
+see [dbcq](https://github.com/numlims/dbcq) for database connection setup.
+
 ## functions:
 
 fields<br/>
@@ -53,8 +55,3 @@ with subcommands:
   fields <tablename>   fields of a table as json
   table <tablename>    human readable table summary
 ```
-
-## setup
-
-needs [dbcq](https://github.com/numlims/dbcq) for database connection.
-

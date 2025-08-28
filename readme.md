@@ -9,6 +9,20 @@ print(t.tables())
 
 documentation [here](https://numlims.github.io/tbl/).
 
+## cli
+
+list the tables in a db:
+
+```
+tbl <db> tables
+```
+
+get a human readable summary of a table and its columns:
+
+```
+tbl <db> table <table name>
+```
+
 ## install
 
 download tbl whl from

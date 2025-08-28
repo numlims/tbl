@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta" # name of the python object that fronten
 
 [project]
 name = "tbl"
-version = "0.0.2"
+version = "0.0.3"
 authors = [
   { name="numlims", email="numlims@med.uni-greifswald.de"}
 ]
@@ -14,7 +14,7 @@ requires-python = ">=3.8"
 dependencies = [
   "simplejson",
   # "dbcq @ git+https://github.com/numlims/dbcq"
-  "dbcq @ https://github.com/numlims/dbcq/archive/refs/tags/v0.0.3.zip",
+  "dbcq @ https://github.com/numlims/dbcq/archive/refs/tags/v0.0.4.zip",
 ]
 classifiers = [
   "Programming Language :: Python :: 3"

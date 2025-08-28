@@ -1,3 +1,4 @@
+"""
 tbl gives functions for sql table handling and inspection
 table and field names are lower cased by default
 see method comments for short description

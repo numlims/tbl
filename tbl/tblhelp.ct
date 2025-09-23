@@ -1,0 +1,402 @@
+tblhelp gives helper functions for tbl.
+
+``//_tblhelp.py:
+``import``
+
+class tblhelp:
+    ``init``
+    ``withidentity``
+    ``withoutidentity``
+    ``wherestring``
+    ``primary_keys_table``
+    ``primary_keys``
+    ``identity_keys``
+    ``columns``
+    ``_columnsquery``
+    ``columntypes``
+    ``tables``
+    ``_type``
+    ``_ismssql``
+    ``_issqlite``
+
+``
+
+init tblhelp with a dbcq connection.
+
+``/init:
+    def __init__(self, db:dbcq):
+        self.db = db
+``
+
+withidentity checks that there are no keys in data that are not
+columns in table, leaves identity columns in.
+
+``/withidentity:
+    def withidentity(self, table, data):
+        out = {}
+        for k in self.columns(table):
+            if k in data:
+                out[k] = data[k]
+        return out
+``
+
+withoutidentity checks that there are no keys in data that are not
+columns in table, throws identity columns out.
+
+``/withoutidentity:
+    def withoutidentity(self, table, data):
+        identities = self.identity_keys(table)
+        for ident in identities:
+            if ident in data:
+                data.pop(ident)
+        return self.withidentity(table, data) # identities is out
+``
+
+wherestring returns the keys and values in args as a sql where
+condition string and appends the values to the args array.
+
+``/wherestring:
+    def wherestring(self, dict, args):
+        ``.``
+``
+
+collect in out. range over the keys.
+
+``
+        out = ""
+        keys = list(dict)
+        for i in range(0, len(keys)):
+            ``.``
+            
+build sql query. if value None, say is NULL.
+
+``
+            if dict[keys[i]] == None:
+                out += "[" + keys[i] + "] is null"
+            else:
+                out += "[" + keys[i] + "] = ? "
+``
+
+no comma after last pair.
+
+``
+            out += " AND " if i < len(keys)-1 else ""
+``
+
+the args, if None, append nothing.
+
+``
+            if dict[keys[i]] != None:
+                args.append(dict[keys[i]])
+``
+
+after the loop, return.
+
+``/wherestring
+        return out
+``
+
+primary_keys queries the primary keys for table and returns them.
+
+needed?
+todo build like columns(self, table=None)
+
+``/primary_keys_table:
+    def primary_keys(self, table):
+        ``.``
+``
+
+query for myssql, from https://stackoverflow.com/a/2341388
+
+"SHOW KEYS FROM table WHERE Key_name = 'PRIMARY'"
+
+if mssql, from https://stackoverflow.com/a/10966944
+
+``
+        result = self.db.qfad("""
+                  select column_name from information_schema.key_column_usage 
+                  where table_name = ? 
+                  and constraint_name like 'PK%'""", table)
+``
+
+gather in out and return.
+
+``
+        out = []
+        for row in result:
+            out.append(row["column_name"].lower())
+        return out
+``
+
+primary_keys returns all primary keys as table-indexed dict.
+
+``/primary_keys:
+    def primary_keys(self):
+        if self._ismssql():
+            ``mssql``
+        else:
+            print(f"identity_keys not supported for {self._type()}")
+            exit
+``
+
+get the result for mssql.
+
+``./mssql:
+            result = self.db.qfad("""
+                      select table_name, column_name from information_schema.key_column_usage 
+                      where constraint_name like 'PK%'""")
+``
+
+return a dictionary keyed by table name.
+
+``
+            out = {}
+            for row in result:
+                if not row["table_name"].lower() in out:
+                    out[row["table_name"].lower()] = []
+                out[row["table_name"].lower()].append(row["column_name"].lower())
+            return out
+``
+
+identity_keys returns the identity columns of table as array.
+
+``/identity_keys:
+    def identity_keys(self, table):
+        if self._ismssql():
+            ``mssql``
+        else:
+            print(f"identity_keys not supported for {self._type()}")
+            exit
+``
+
+for mssql fetch and gather the column names.
+
+``./mssql:
+            result = query_fetch_all_dict(
+            """
+            select column_name from information_schema.columns
+            where columnproperty(object_id(table_schema + '.' + table_name), column_name, 'IsIdentity') = 1
+            and table_name = ?""", table)
+            out = []
+            for row in result:
+                out.append(row["column_name"].lower())
+            return out
+``
+
+columns returns the column names of table as an array of strings. if
+no table is given, it returns a dict by table that holds the column
+names for every table.
+
+``/columns:
+    def columns(self, table=None):
+        if table == None:
+            ``all``
+        else: 
+            ``specific``
+``
+
+return for all tables with columns.
+
+``./all:
+            result = self._columnsquery()
+
+            tables = self.tables()
+            out = {}
+            # make an entry for every table in the dict, even if it doesn't have a column
+            for table in tables:
+                out[table.lower()] = []
+            for row in result:
+                t = row["table_name"].lower()
+                c = row["column_name"].lower()
+                if t not in tables: # e.g. schema_version is in result but not in tables
+                    continue
+                out[t].append(c)
+
+            return out
+``
+
+return columns for specific table.
+
+``../specific:
+            result = self._columnsquery(table)
+            out = []
+            for row in result:
+                out.append(row["column_name"].lower())
+            out.sort()
+            return out
+``
+
+_columnsquery returns dict array of tables and columns, either for one
+table or for all tables. this is an extra function because it can
+called with table name or without we could also query all tables and
+colums, and filter afterward if only one table is wished.
+
+todo: bug for sqlite with table argument
+    
+``/_columnsquery:
+
+    def _columnsquery(self, table=None):
+        query = ""
+        if self._issqlite():
+            ``sqlite``
+        elif self._ismssql():
+            ``mssql``
+        else:
+            ``else``
+        ``return``
+``
+
+for sqlite, from https://stackoverflow.com/a/50548508
+
+``./sqlite:
+            query = """
+            SELECT m.name as table_name, 
+            p.name as column_name
+            FROM sqlite_master m
+            left outer join pragma_table_info((m.name)) p
+            on m.name <> p.name
+            """
+            if table != None:
+                query += " where table_name = ?"
+            query += """
+            order by table_name, column_name
+            """
+``
+
+for mssql.
+
+``../mssql:
+            query = """
+            select table_name, column_name from information_schema.columns 
+            """
+            if table != None:
+                query += " where table_name = ? "
+            query += """
+            order by ordinal_position
+            """
+``
+
+else, give not supported msg.
+
+``../else:
+            print(f"colums not supported for {self._type()}")
+            exit
+``
+
+if table given, pass it as argument to the query and return result.
+
+``../return:
+        if table == None:
+            return self.db.qfad(query)
+        else:
+            #print("table: " + table)
+            return self.db.qfad(query, table)
+``
+
+columntypes returns a dict of columnnames and types for table.
+
+``/columntypes:
+    def columntypes(self, table):
+        if self._ismssql():
+            ``mssql``            
+        else:
+            ``else``
+``
+
+for mssql, query from https://www.mytecbits.com/microsoft/sql-server/list-of-column-names
+
+``./mssql:
+            query = """
+            SELECT
+            COLUMN_NAME as name, DATA_TYPE as type
+            FROM
+            INFORMATION_SCHEMA.COLUMNS
+            WHERE
+            TABLE_NAME = ?
+            ORDER BY ORDINAL_POSITION
+            """   
+            result = self.db.qfad(query, table) 
+            out = {}
+            for row in result:
+                out[row["name"].lower()] = row["type"].lower()
+            return out
+``
+
+else say not supported.
+
+``../else:
+            print(f"columntypes is not supported for {self._type()}")
+            exit
+``
+
+tables gives the names of the tables in the db.
+
+``/tables:
+    def tables(self):
+        tables = []
+        if self._ismssql():
+            ``mssql``
+        elif self._issqlite():
+            ``sqlite``
+        else:
+            ``else``
+        ``return``
+``
+
+tables for mssql.
+
+``./mssql:
+            result = self.db.qfad("exec sp_tables")
+            tables = []
+            for row in result:
+                if row["table_owner"] == "dbo":
+                    tables.append(row["table_name"].lower())
+``
+
+tables for sqlite, from https://stackoverflow.com/a/83195
+
+``../sqlite:
+            res = self.db.qfad("SELECT name FROM sqlite_master WHERE type='table'")
+            tables = [row["name"] for row in res]
+``
+
+else say not supported.
+
+``../else:
+            print(f"tables not supported for {self._type()}")
+            exit
+``
+
+sort and return.
+
+``../return:
+        tables.sort()
+        return tables
+``
+
+_type returns the db type.
+
+``/_type:
+    def _type(self):
+        return self.db.info['type']
+``
+
+_ismssql says whether database is mssql.
+
+``/_ismssql:
+    def _ismssql(self):
+        return self.db.info["type"] == "mssql"
+``
+
+_issqlite says whether database is sqlite.
+
+``/_issqlite:
+    def _issqlite(self):
+        return self.db.info["type"] == "sqlite"
+``
+
+the imports.
+
+``/import:
+from dbcq import *
+``

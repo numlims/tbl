@@ -1,8 +1,45 @@
+tbl gives functions for sql table handling and inspection
+table and field names are lower cased by default
+see method comments for short description
+
+
+
+``//__init__.py:
+``import``
+``fk_type``
+
+class tbl:
+    ``init``
+    ``columns``
+    ``columntypes``
+    ``deletefrom``
+    ``fk``
+    ``fkfromt``
+    ``fkfromtc``
+    ``fktot``
+    ``fktotc``
+    ``identities``
+    ``insert``
+    ``update``
+    ``pk``
+    ``tables``
+    ``tablesummary``
+    ``_rmtablename``
+``
+
+the imports.
+
+``/import:
 from dbcq import dbcq
 from tbl._tblhelp import *
 import json
 import sys
 import jsonpickle 
+``
+
+fk holds a foreign key.
+
+``/fk_type:
 class fk:
     def __init__(self, ft, fc, tt, tc):
         "init a foreign key. ft: from table, fc: from column, tt: to table, tc: to column."
@@ -11,22 +48,121 @@ class fk:
         self.fc = fc
         self.tt = tt
         self.tc = tc
+``
 
-class tbl:
+init initializes tbl.
+
+``/init:
     def __init__(self, target):
+        ``.``
+``
+
+connect to the database target in .dbc
+todo maybe pass flag lower=False
+
+``
         self.db = dbcq(target)
         self.th = tblhelp(self.db)
+``
+
+        columns returns the column names of table as an array of strings,
+        if no table given, return dict by table with fields for every table 
+
+``/columns:
     def columns(self, table=None):
         return self.th.columns(table)
+``
+
+columntypes gives the column schema for tablename.
+
+``/columntypes:
     def columntypes(self, tablename):
         return self.th.columntypes(tablename)
+``
+
+
+deletefrom deletes the row in table identified by the post parameters
+if there are two rows with exactly the same values, it deletes both 
+
+``/deletefrom:
     def deletefrom(self, table, row):
         args = []
         q = "delete from [" + table + "] where " + self.th.wherestring(row, args)
         # do the deleting
         self.db.query(q, args) # todo uncomment
+``
+
+identities gives list of identity (auto-increment) columns for table
+
+``/identities:
+    def identities(self, table):
+        
+        identities = self.th.identity_keys(table)
+        return identities
+``
+
+insert inserts a line in a table.
+
+``/insert:
+    def insert(self, table, row):
+        ``.``
+``
+
+check keys and throw out identity columns.
+
+``
+        data = withoutidentity(table, row) # assume primary key is generated
+``
+
+convert strings to numbers. collect placeholders for the query.
+
+``
+        placeholders = [] # for query
+        types = columntypes(table) # for parsing
+        for key in data:
+            # parse strings to numbers
+            if types[key] in ["int", "bigint", "smallint", "tinyint", "bit", "decimal", "numeric", "money", "smallmoney"]:
+                data[key] = int(data[key])
+            elif types[key] in ["real", "float"]:
+                data[key] = float(data[key])
+
+            # a placeholder for the query
+            placeholders.append("?")
+``
+
+put the query together and send it to db.
+
+``
+        q = "insert into [" + table + "] ([" + "], [".join(list(data)) + "]) values (" + ", ".join(placeholders) + ")"
+
+        # do the insertion
+        self.db.query(q, *data.values()) 
+``
+
+fk gives all foreign keys as array of fks.
+
+``/fk:
     def fk(self):
+        ``.``
+``
+
+different database types need different queries.
+
+``
         if self.th._issqlite():
+            ``sqlite``
+        elif self.th._ismssql():
+            ``mssql``
+        else:
+            print(f"fk not supported for {self.th._type()}")
+
+
+``
+
+sqlite gets the foreign keys from sqlite_master joined by
+pragma_foreign_key_list.
+
+``./sqlite:
             # from https://stackoverflow.com/a/59171912
             query = """
             SELECT master.name, pragma.*
@@ -40,7 +176,12 @@ class tbl:
             for row in res:
                 fks.append(fk(row["name"].lower(), row["from"].lower(), row["table"].lower(), row["to"].lower())) # is lower() here a good idea?
             return fks
-        elif self.th._ismssql():
+``
+
+the mssql query pulls the foreign keys from sys.foreign_keys and
+sys.foreign_key_columns.
+
+``../mssql:
             # query from https://stackoverflow.com/a/17501870
             query = """
             SELECT 
@@ -56,6 +197,11 @@ class tbl:
             INNER JOIN 
             sys.tables t 
             ON t.OBJECT_ID = fkc.referenced_object_id"""
+``
+
+send the query for mssql and get the results.
+
+``
             # return self.db.qfad(query) # todo return array of keys? let key have fields ft fc tt tc and fromtable fromcolumn totable tocolumn?
             rows = self.db.qfad(query) # todo return array of keys? let key have fields ft fc tt tc and fromtable fromcolumn totable tocolumn?
             # output foreign as objects
@@ -65,10 +211,11 @@ class tbl:
                 #a.append(fk(row["ft"], row["fc"], row["tt"], row["tc"])) 
                 # a.append(row)
             return a
-        else:
-            print(f"fk not supported for {self.th._type()}")
+``
 
+fkfromt returns foreign keys by from-table dict key for every table in db.
 
+``/fkfromt:
     def fkfromt(self, fka=None):
         if fka == None:
             fka = self.fk()
@@ -79,18 +226,45 @@ class tbl:
         for key in fka:
             out[key.ft].append(key)
         return out
+``
+
+fkfromtc returns foreign keys by from-table and from-column dict key
+for every table in db.
+
+``/fkfromtc:
     def fkfromtc(self, fka=None):
+        ``.``
+``
+
+get the foreign keys array.
+
+``
         if fka == None:
             fka = self.fk()
         out = {}
+``
+
+return complete list of tables in db.
+
+``
         for t in self.tables():
             out[t] = {}
+``
+
+sort in the foreign keys by their from-table and from-column.
+
+``
         for key in fka:
             # is there an entry for the key?
             if not key.fc in out[key.ft]:
                 out[key.ft][key.fc] = []
             out[key.ft][key.fc].append(key)
         return out
+``
+
+fktot returns foreign keys by to-table dict key for every table in db.
+
+``/fktot:
     def fktot(self, fka=None):
 
         if fka == None:
@@ -102,6 +276,12 @@ class tbl:
         for key in fka:
             out[key.tt].append(key)
         return out
+``
+
+fktotc returns foreign keys by to-table and to-column dict key for
+every table in db.
+
+``/fktotc:
     def fktotc(self, fka=None):
 
         if fka == None:
@@ -115,32 +295,50 @@ class tbl:
                 out[key.tt][key.tc] = []
             out[key.tt][key.tc].append(key)
         return out
-    def identities(self, table):
-        
-        identities = self.th.identity_keys(table)
-        return identities
-    def insert(self, table, row):
-        data = withoutidentity(table, row) # assume primary key is generated
-        placeholders = [] # for query
-        types = columntypes(table) # for parsing
-        for key in data:
-            # parse strings to numbers
-            if types[key] in ["int", "bigint", "smallint", "tinyint", "bit", "decimal", "numeric", "money", "smallmoney"]:
-                data[key] = int(data[key])
-            elif types[key] in ["real", "float"]:
-                data[key] = float(data[key])
+``
 
-            # a placeholder for the query
-            placeholders.append("?")
-        q = "insert into [" + table + "] ([" + "], [".join(list(data)) + "]) values (" + ", ".join(placeholders) + ")"
+pk gives primary keys as list for each table.
 
-        # do the insertion
-        self.db.query(q, *data.values()) 
+``/pk:
+    def pk(self):
+        return self.th.primary_keys()
+``
+
+tables gives the names of the tables in the db.
+
+``/tables:
+    def tables(self):
+        return self.th.tables()
+``
+
+update updates data in a table row
+    table: table name
+    fromrow: dict used to select row
+    torow: dict with new values
+    dq returns dicts keyed by <tablename>.<fieldname>. to make edits on these dicts updatable without renaming the keys, this function also accept these dicts, if all keys in fromrow or torow are <tablename>.<fieldname>
+
+``/update:
     def update(self, table, fromrow, torow):
+        ``.``
+``
+
+make sure only columns in the tables are passed, remote identity columns from todata.
+
+``
         fromdata = withidentity(table, fromrow)
         todata = withoutidentity(table, torow)
+``
+
+remove table names from dict keys if they are there
+
+``
         fromdata = _rmtablename(table, fromdata)
         todata = _rmtablename(table, todata)
+``
+
+build an array of update key-values.
+
+``
         # todata.pop(pk) # don't update the primary key
         updatepairs = []
         args = [] # successively fill the query args array
@@ -150,16 +348,29 @@ class tbl:
             updatepairs.append("[" + key + "] = ?")
             # the args
             args.append(todata[key])
+``
+
+build and send the query.
+
+``
         ws = self.th.wherestring(fromdata, args) # fill args along the way
         q = "update [" + table + "] set " + ", ".join(updatepairs) + " where " + ws
 
         # do the update
         self.db.query(q, args)
-    def pk(self):
-        return self.th.primary_keys()
-    def tables(self):
-        return self.th.tables()
+``
+
+tablesummary returns a human readable summary of table with columns
+and outgoing and incoming foreign keys.
+
+``/tablesummary:
     def tablesummary(self, table:str):
+        ``.``
+``
+
+get the foreign keys.
+
+``
         # taken from ~/tbl-cxx/bytable.py
         out = ""
 
@@ -167,7 +378,18 @@ class tbl:
         fks = self.fk()
         fkfromtc = self.fkfromtc(fks)
         fktotc = self.fktotc(fks)
+``
+
+remember columns by table.
+
+``
         columns = self.columns()
+``
+
+stick together the output string: first the table name, followed by
+the fields that are not foreign keys.
+
+``
         out += table.upper() + "  "
         if table in columns:
             columns[table].sort()
@@ -176,6 +398,11 @@ class tbl:
                 out += column.lower() + " "
         out += "\n"
         out += "\n"
+``
+
+then the outgoing foreign keys from this table.
+
+``
         if table in fkfromtc:
             cols = list(fkfromtc[table].keys())
             cols.sort()
@@ -184,6 +411,11 @@ class tbl:
                 fk = fkfromtc[table][column][0]
                 out += "  " + fk.fc.lower() + "  " + fk.tt.lower() + "." + fk.tc.lower() + "\n"
             out += "\n"
+``
+
+last the incoming foreign keys to this table.
+
+``
         if table in fktotc and len(fktotc[table]) > 0:
             # sort
             a = list(fktotc[table].keys())
@@ -200,28 +432,77 @@ class tbl:
         out += "\n"
 
         return out
-    def _rmtablename(tablename:str, row:dict) -> dict:
-        out = {}
-        key = keys(row)[0]
-        if re.match("\.", key):
-            withname = True  # all keys should be with table name
-        else:
-            withname = False # no key should be with table name
-        for key in keys(row):
-            if re.match("\.", key) != withname:
-                print("error: there must be a tablename for all keys or for none")
-                exit
-            if not withnames:
-                continue
-            a = key.split(".")
-            thistablename = a[0]
-            if thistablename != tablename:
-                print(f"error: table name in {key} doesn't match {tablename}")
-                exit
-            colname = a[1]
-            out[colname] = row[key]
-        if withnames:
-            return out
-        else:
-            # no key had a table name, return unchanged
-            return row
+``
+
+_rmtablenames removes table name from <tablename>.<columname> keys
+keys in row-dict and returns row-dict.
+
+it gives an error if only some columns are preceeded by a table name,
+and if table names don't match the given name.
+
+
+``/_rmtablename:
+def _rmtablename(tablename:str, row:dict) -> dict:
+    out = {}
+    ``.``
+``
+
+find out whether the first key has a tablename.
+
+``
+    key = keys(row)[0]
+    if re.match("\.", key):
+        withname = True  # all keys should be with table name
+    else:
+        withname = False # no key should be with table name
+``
+
+go through the keys.
+
+``
+    for key in keys(row):
+        ``.``
+``
+
+key with table name when it shouldn't be, or without table name when
+it should be with.
+
+``
+        if re.match("\.", key) != withname:
+            print("error: there must be a tablename for all keys or for none")
+            exit
+``
+
+no edits to be done, continue.
+
+``
+        if not withnames:
+            continue
+``
+
+remove tablename.
+
+``
+        a = key.split(".")
+        thistablename = a[0]
+        if thistablename != tablename:
+            print(f"error: table name in {key} doesn't match {tablename}")
+            exit
+        colname = a[1]
+``
+
+put field in out without table name.
+
+``
+        out[colname] = row[key]
+``
+
+after the loop, table name got removed from every key.
+
+``../
+    if withnames:
+        return out
+    else:
+        # no key had a table name, return unchanged
+        return row
+``

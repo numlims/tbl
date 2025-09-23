@@ -69,3 +69,13 @@ with subcommands:
   fields <tablename>   fields of a table as json
   table <tablename>    human readable table summary
 ```
+
+# dev
+
+get [codetext](https://github.com/tnustrings/codetext) for assembling init.ct.
+
+build and install:
+
+```
+make install
+```

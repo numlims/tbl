@@ -12,6 +12,7 @@ description = "db table wrapper"
 readme = "readme.md"
 requires-python = ">=3.8"
 dependencies = [
+  "jsonpickle",
   "simplejson",
   # "dbcq @ git+https://github.com/numlims/dbcq"
   "dbcq @ https://github.com/numlims/dbcq/archive/refs/tags/v0.0.4.zip",

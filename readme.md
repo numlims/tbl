@@ -72,7 +72,9 @@ with subcommands:
 
 # dev
 
-get [codetext](https://github.com/tnustrings/codetext) for assembling init.ct.
+## dev
+
+assemble code from the .ct files with [ct](https://github.com/tnustrings/ct).
 
 build and install:
 
